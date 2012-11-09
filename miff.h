@@ -3,30 +3,35 @@
     Created by Jon Clayden <jon.clayden+miff@gmail.com>, September 2011
 ============================================================================ */
 
+/* Total header size: 192 bytes */
 typedef struct {
     char        magic_number[8];        /* Fixed to be "MedImag\0" (hex 4d 65 64 49 6d 61 67 00). */
     short       major_version;          /* Currently 1. */
     short       minor_version;          /* Currently 0. */
     short       data_type;              /* See note 2. */
-    short       representation;         /* See note 3. */
-    double      voxels_stored;          /* See note 3. */
-    int         data_offset;            /* See note 4. */
-    short       space_unit;             /* See note 5. */
-    short       time_unit;              /* See note 5. */
-    int         image_dims[6];          /* See note 6. */
-    double      voxel_dims[6];          /* See note 5. */
-    double      scale_slope;            /* See note 7. */
-    double      scale_intercept;        /* See note 7. */
-    double      window_min;             /* See note 8. */
-    double      window_max;             /* See note 8. */
-    double      euler_angles[3];        /* See note 9. */
-    short       handedness;             /* See note 9. */
+    short       n_dims;                 /* See note 3. */
+    short       n_space_dims;           /* See note 3. */
+    short       dim_order;              /* See note 3. */
+    short       space_unit;             /* See note 4. */
+    short       time_unit;              /* See note 4. */
+    int         image_dims[6];          /* See note 5. */
+    double      voxel_dims[6];          /* See note 4. */
+    double      scale_slope;            /* See note 6. */
+    double      scale_intercept;        /* See note 6. */
+    double      window_min;             /* See note 7. */
+    double      window_max;             /* See note 7. */
+    double      euler_angles[3];        /* See note 8. */
+    short       handedness;             /* See note 8. */
+    short       representation;         /* See note 9. */
+    short       voxel_count_dim;        /* See note 9. */
     char        description[30];        /* Free text description, using UTF-8 encoding. */
+    int         metadata_count;         /* See note 10. */
 } miff_header;
 
+/* Total metadata record size: 80 bytes */
 typedef struct {
-    char        label[20];              /* See note 10. */
-    char        value[60];              /* See note 11. */
+    char        label[20];              /* See note 11. */
+    char        value[60];              /* See note 12. */
 } miff_metadata;
 
 /* ============================================================================
@@ -38,46 +43,39 @@ typedef struct {
 2. The "data_type" field describes the size and basic type (integer or
     floating-point) of the voxel data stored with the image. Constants
     representing the allowable types are defined below.
+    
+3. The "n_dims" field gives the overall number of dimensions in the image,
+    while "n_space_dims" defines how many of those are spatial (usually 3,
+    possibly 2). The "dim_order" field defines the order of the dimensions as
+    stored in the file. If this is MIFF_DIMORDER_SPATIAL_FIRST then spatial
+    dimensions appear first (as is typical with NIfTI files); if it is
+    MIFF_DIMORDER_SPATIAL_LAST then spatial dimensions appear last, so all data
+    corresponding to the first voxel appear first, followed by all data from
+    the second voxel, and so on.
 
-3. The "representation" field indicates exactly what data are stored in the
-    file, and in what order. If the encoding is MIFF_REPRESENT_CARTESIAN, every
-    voxel's value is stored in sequence, with the first dimension moving
-    fastest, and the last dimension moving slowest. If the encoding is
-    MIFF_REPRESENT_COORDLIST, a list of coordinates of nonzero voxels is stored
-    as (32-bit signed) integers at the beginning of the data section of the
-    file, followed by a list of their values, using whatever data type is
-    indicated by the "data_type" field. This representation is more compact for
-    sparse images. In this case, the actual number of voxels stored is given
-    in the "voxels_stored" field. If this value is (strictly) less than 1, it
-    is taken to indicate the proportion of voxels which are nonzero.(*)
-
-4. The "data_offset" field gives the offset, in bytes, of the first data value
-    in the file. This is a 32-bit integer, allowing for metadata sizes up to
-    2 GB.
-
-5. The "space_unit" and "time_unit" fields give the units of the voxel spacings
+4. The "space_unit" and "time_unit" fields give the units of the voxel spacings
     (the "voxel_dims" field) along space and time dimensions, respectively.
     Constants representing the allowable units are defined below. The first
-    three dimensions are taken to be spatial, the fourth temporal, and the
-    fifth and sixth have no fixed interpretation.
+    nonspatial dimension is taken to be temporal, while other dimensions have
+    no fixed interpretation. The ordering of the "voxel_dims" array should
+    respect the "dim_order" field - see note 3.
 
-6. The "image_dims" field gives the number of voxels in the image in each
+5. The "image_dims" field gives the number of voxels in the image in each
     dimension. A value of zero indicates that the associated dimension is not
     relevant, but zeroes may not appear before the last relevant dimension.
     A 4D image with no time dimension may therefore have "image_dims" of
-    (128,128,128,1,16,0), but not (128,128,128,0,16,0). Note that the product
-    of the (nonzero) dimensions is not necessarily equal to the number of
-    voxel values stored - see note 3.
+    (128,128,128,1,16,0), but not (128,128,128,0,16,0). The ordering of this
+    array should respect the "dim_order" field - see note 3.
 
-7. The "scale_slope" and "scale_intercept" fields are for data scaling. The
+6. The "scale_slope" and "scale_intercept" fields are for data scaling. The
     final voxel values are the stored values multiplied by the slope, plus the
     intercept.
 
-8. The "window_min" and "window_max" fields are hints for the range of the data
+7. The "window_min" and "window_max" fields are hints for the range of the data
     values. If they are not both zero, they may be used by visualisation
     software to set the intensity scale.
 
-9. The basic storage convention for MIFF files is RAS (with "handedness" set to
+8. The basic storage convention for MIFF files is RAS (with "handedness" set to
     +1) or LAS (with "handedness" set to -1). Implementors should use one of
     these conventions where possible, but it is acknowledged that resampling
     a rotated image may be undesirable, and therefore the "euler_angles" field
@@ -100,7 +98,24 @@ typedef struct {
     between -45 and +45. This (deliberately) does not allow for conventions
     such as LIA - such data should be reordered to RAS or LAS.
 
-10. Metadata labels consist of UTF-8 encoded free text, and may therefore take
+9. The "representation" field indicates exactly what data are stored in the
+    file, and in what order. If the encoding is MIFF_REPRESENT_CARTESIAN, every
+    voxel's value is stored in sequence, with the first dimension moving
+    fastest, and the last dimension moving slowest. If the encoding is
+    MIFF_REPRESENT_COORDLIST, the data is divided into blocks. The within-block
+    format is a single (32-bit signed) integer, giving the number of nonzero
+    voxels in the block, followed by a list of coordinates of nonzero voxels as
+    (32-bit signed) integers, followed by a list of their values, using
+    whatever data type is indicated by the "data_type" field. Blocks represent
+    a single element in the "voxel_count_dim" dimension, perhaps a slice or
+    volume. Zero is a valid value for "voxel_count_dim", in which case all
+    values are stored in a single block. This representation is potentially
+    much more compact for sparse images.
+
+10. The "metadata_count" field gives the number of metadata records which
+    follow the mandatory header. This should be zero or greater.
+
+11. Metadata labels consist of UTF-8 encoded free text, and may therefore take
     any value. However, names of the form ".DCM.gggg.eeee", where "gggg" and
     "eeee" each represent four hexadecimal digits, are taken to represent the
     corresponding DICOM tag. (The remaining 6 characters of the label are
@@ -110,15 +125,10 @@ typedef struct {
     may appear multiple times, in which case the values would generally be
     concatenated.
 
-11. Metadata values are UTF-8 encoded free text strings. If the corresponding
+12. Metadata values are UTF-8 encoded free text strings. If the corresponding
     label indicates a DICOM tag number (see note 10), then the DICOM
     convention of separating multiple values with a backslash ("\") is
     followed.
-  
-(*) Implementation detail: a "double", rather than 64-bit integer, is used for
-    the "voxels_stored" field, since this type is more widely available across
-    platforms. Double-precision floating point numbers can store integers
-    exactly up to 2^53 (about 9e+15).
 
 ============================================================================ */
 
@@ -130,8 +140,8 @@ typedef struct {
 #define MIFF_DATATYPE_FLOAT32       5
 #define MIFF_DATATYPE_FLOAT64       6
 
-#define MIFF_REPRESENT_CARTESIAN    0
-#define MIFF_REPRESENT_COORDLIST    1
+#define MIFF_DIMORDER_SPATIAL_FIRST 0
+#define MIFF_DIMORDER_SPATIAL_LAST  1
 
 #define MIFF_UNIT_UNDEFINED         0
 #define MIFF_UNIT_MICRON            1
@@ -142,3 +152,6 @@ typedef struct {
 #define MIFF_UNIT_MICROSECOND      16
 #define MIFF_UNIT_MILLISECOND      17
 #define MIFF_UNIT_SECOND           18
+
+#define MIFF_REPRESENT_CARTESIAN    0
+#define MIFF_REPRESENT_COORDLIST    1
