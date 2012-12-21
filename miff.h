@@ -3,9 +3,9 @@
     Created by Jon Clayden <jon.clayden+miff@gmail.com>, September 2011
 ============================================================================ */
 
-/* Total header size: 192 bytes */
+/* Total header size: 216 bytes */
 typedef struct {
-    char        magic_number[8];        /* Fixed to be "MedImag\0" (hex 4d 65 64 49 6d 61 67 00). */
+    char        magic_number[8];        /* Always "MedImag\0" (hex 4d 65 64 49 6d 61 67 00). */
     short       major_version;          /* Currently 1. */
     short       minor_version;          /* Currently 0. */
     short       data_type;              /* See note 2. */
@@ -16,6 +16,7 @@ typedef struct {
     short       time_unit;              /* See note 4. */
     int         image_dims[6];          /* See note 5. */
     double      voxel_dims[6];          /* See note 4. */
+    double      origin[3];              /* See note 4. */
     double      scale_slope;            /* See note 6. */
     double      scale_intercept;        /* See note 6. */
     double      window_min;             /* See note 7. */
@@ -58,7 +59,9 @@ typedef struct {
     Constants representing the allowable units are defined below. The first
     nonspatial dimension is taken to be temporal, while other dimensions have
     no fixed interpretation. The ordering of the "voxel_dims" array should
-    respect the "dim_order" field - see note 3.
+    respect the "dim_order" field - see note 3. The "origin" field can be used
+    to specify a voxel location corresponding to some anatomical reference
+    point in the image.
 
 5. The "image_dims" field gives the number of voxels in the image in each
     dimension. A value of zero indicates that the associated dimension is not
