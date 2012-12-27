@@ -1,6 +1,6 @@
-This project provides a draft definition for the Medical Image File Format (MIFF), an illustrative proposal for a file format intended for containing medical imaging data with certain desirable characteristics relative to existing commonly-used formats. At present this format is not actually used by any software.
+This project provides a draft definition for the Medical Image File Format (MIFF), an illustrative proposal for a file format intended for containing medical imaging data, with certain desirable characteristics relative to existing commonly-used formats. At present this format is not actually used by any software.
 
-Two important file formats in modern medical imaging are [DICOM](http://dicom.nema.org) and [NIfTI-1](http://nifti.nimh.nih.gov/nifti-1/). The former is widely used on scanner hardware and allows for extremely rich metadata but is extremely complex. The latter is simple and widely used for interoperability between software packages, but can be inefficient in some contexts.
+Two important file formats in modern medical imaging are [DICOM](http://dicom.nema.org) and [NIfTI-1](http://nifti.nimh.nih.gov/nifti-1/). The former is widely used on scanner hardware and allows for very rich metadata but is extremely complex. The latter is simple and widely used for interoperability between software packages, but can be inefficient in some contexts.
 
 The key features of MIFF relative to NIfTI-1 are:
 
